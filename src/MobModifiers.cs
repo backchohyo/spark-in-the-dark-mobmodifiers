@@ -12,7 +12,7 @@ using ModLoader;
 using UnityEngine;
 using UnityEngine.UI;
 
-[assembly: ModInfo("MobModifiers", "1.3.0", Description = "몬스터에게 접두사(거대한·역병의 등)를 붙이고, 쓰러뜨리면 티어에 따라 장비·스킬북을 보상으로 줍니다.",
+[assembly: ModInfo("MobModifiers", "1.4.0", Description = "몬스터에게 접두사(거대한·역병의 등)를 붙이고, 쓰러뜨리면 티어에 따라 장비·스킬북을 보상으로 줍니다.",
     SettingsNote = "바꾼 값은 바로 저장·적용됩니다. 등장 확률 설정은 앞으로 새로 나타나는 몬스터부터, 수치·보상 설정은 이미 접두사가 붙은 몬스터에도 바로 반영됩니다.")]
 
 namespace MobModifiers
@@ -20,7 +20,7 @@ namespace MobModifiers
     public enum MobAffix
     {
         None = 0, Giant = 1, Swift = 2, Hardened = 3, Plague = 4, Sharp = 5, Elite = 6, Regen = 7,
-        Agile = 8, Mighty = 9, Vampiric = 10, Thorny = 11, Shadow = 12, Frenzied = 13, Undying = 14
+        Agile = 8, Mighty = 9, Vampiric = 10, Thorny = 11, Shadow = 12, Frenzied = 13, Undying = 14, Wandering = 15
     }
 
     public static class Cfg
@@ -40,7 +40,8 @@ namespace MobModifiers
         [Setting(SH, "체력 수치 표시", Desc = "체력바 위에 현재/최대 체력을 숫자로 표시합니다.")] public static bool ShowHpNumbers = false;
         [Setting(SH, "표시 거리", Unit = "m", Min = 3, Max = 50, Desc = "이 거리 안에 있는 몬스터만 이름표·체력바를 보여줍니다.")] public static int LabelDistance = 15;
         [Setting(SH, "크기", Unit = "%", Min = 50, Max = 200, Step = 10, Desc = "이름표 글자와 체력바 크기")] public static int LabelScale = 100;
-        [Setting(SH, "벽 너머 몬스터는 숨기기", Desc = "끄면 벽 뒤에 있는 몬스터도 표시합니다.")] public static bool HideBehindWalls = true;
+        [Setting(SH, "벽 너머 몬스터는 숨기기", Desc = "끄면 벽 뒤에 있는 몬스터도 표시합니다. 영웅 눈높이에서 몬스터가 벽·문에 가려 있으면 숨깁니다.")] public static bool HideBehindWalls = true;
+        [Setting(SH, "시야 밖(어둠 속) 몬스터는 숨기기", Desc = "켜면 영웅의 시야(등불 빛이 닿는 거리) 밖에 있는 몬스터의 이름표·체력바를 숨깁니다.")] public static bool HideOutOfSight = true;
 
         [Setting(A1, "신속한", Desc = "이동 속도가 크게, 공격 속도가 조금 오릅니다.")] public static bool SwiftOn = true;
         [Setting(A1, "비중", Min = 0, Max = 100, Inline = true)] public static int SwiftWeight = 12;
@@ -64,6 +65,8 @@ namespace MobModifiers
         [Setting(A2, "비중", Min = 0, Max = 100, Inline = true)] public static int ShadowWeight = 6;
         [Setting(A2, "광폭한", Desc = "체력이 기준 이하로 떨어지면 공격력과 공격 속도가 오릅니다.")] public static bool FrenziedOn = true;
         [Setting(A2, "비중", Min = 0, Max = 100, Inline = true)] public static int FrenziedWeight = 5;
+        [Setting(A2, "방랑하는", Desc = "자기 자리를 지키지 않고 층 전체를 자유롭게 돌아다닙니다. 어디서 마주칠지 모릅니다.")] public static bool WanderingOn = true;
+        [Setting(A2, "비중", Min = 0, Max = 100, Inline = true)] public static int WanderingWeight = 6;
         [Setting(A3, "강력한", Desc = "공격력이 매우 크게 오릅니다.")] public static bool MightyOn = true;
         [Setting(A3, "비중", Min = 0, Max = 100, Inline = true)] public static int MightyWeight = 5;
         [Setting(A3, "엘리트", Desc = "공격력·체력·이동 속도·방어력이 모두 크게 오릅니다.")] public static bool EliteOn = true;
@@ -88,6 +91,7 @@ namespace MobModifiers
         [Setting(V2, "광폭한  기준", Unit = "%", Min = 1, Max = 100, Desc = "광폭한: 체력이 기준 % 이하일 때 공격력·공격 속도 증가")] public static int FrenziedHp = 50;
         [Setting(V2, "공격력", Unit = "%", Min = 0, Max = 300, Step = 5, Inline = true)] public static int FrenziedDmg = 40;
         [Setting(V2, "공속", Unit = "%", Min = 0, Max = 200, Step = 5, Inline = true)] public static int FrenziedAtk = 30;
+        [Setting(V2, "방랑하는  다음 목적지까지", Unit = "초", Min = 5, Max = 120, Desc = "방랑하는: 한 곳에 머무는 시간. 이 시간(±50%)이 지나면 층의 다른 곳으로 떠납니다.")] public static int WanderingSec = 25;
         [Setting(V3, "강력한  공격력", Unit = "%", Min = 0, Max = 500, Step = 5, Desc = "강력한: 공격력 증가량")] public static int MightyDmg = 80;
         [Setting(V3, "엘리트  모든 능력치", Unit = "%", Min = 0, Max = 200, Desc = "엘리트: 공격력·체력·이동 속도·방어력(피해 감소)이 각각 이만큼 오릅니다.")] public static int ElitePct = 30;
         [Setting(V3, "불사의  부활 체력", Unit = "%", Min = 1, Max = 100, Desc = "불사의: 다시 일어날 때 회복하는 체력 비율")] public static int UndyingHp = 50;
@@ -183,7 +187,7 @@ namespace MobModifiers
                     foreach (var x in v.Split(','))
                     {
                         int n;
-                        if (int.TryParse(x, NumberStyles.Integer, CultureInfo.InvariantCulture, out n) && n > 0 && n <= (int)MobAffix.Undying && !d.Affixes.Contains((MobAffix)n))
+                        if (int.TryParse(x, NumberStyles.Integer, CultureInfo.InvariantCulture, out n) && n > 0 && n <= (int)MobAffix.Wandering && !d.Affixes.Contains((MobAffix)n))
                             d.Affixes.Add((MobAffix)n);
                     }
                 }
@@ -205,7 +209,7 @@ namespace MobModifiers
         public static readonly MobAffix[] All =
         {
             MobAffix.Swift, MobAffix.Hardened, MobAffix.Sharp, MobAffix.Regen, MobAffix.Agile,
-            MobAffix.Giant, MobAffix.Plague, MobAffix.Vampiric, MobAffix.Thorny, MobAffix.Shadow, MobAffix.Frenzied,
+            MobAffix.Giant, MobAffix.Plague, MobAffix.Vampiric, MobAffix.Thorny, MobAffix.Shadow, MobAffix.Frenzied, MobAffix.Wandering,
             MobAffix.Mighty, MobAffix.Elite, MobAffix.Undying
         };
 
@@ -227,6 +231,7 @@ namespace MobModifiers
                 case MobAffix.Shadow: return "어둠의";
                 case MobAffix.Frenzied: return "광폭한";
                 case MobAffix.Undying: return "불사의";
+                case MobAffix.Wandering: return "방랑하는";
                 default: return "";
             }
         }
@@ -267,39 +272,77 @@ namespace MobModifiers
             if (!ch || IsHero(ch) || ch.IsDead) return false;
             cr = ch.GetComponent<Creature>();
             if (!cr || cr.IsEnvironment || cr.IsDead) return false;
+            if (IsBossOrSummon(ch)) return false;
             return true;
         }
 
-        static MobData Roll()
+        // 보스 모드의 보스·소환수에는 접두사를 붙이지 않고 머리 위 표시도 하지 않는다 (보스는 전용 체력바가 있음)
+        public static bool IsBossOrSummon(CharacterBase ch)
+        {
+            string n = ch ? ch.AlterName : null;
+            return n != null && n.StartsWith("boss_", StringComparison.Ordinal);
+        }
+
+        static MobData Roll(Creature cr)
         {
             var d = new MobData();
-            if (Rng.Next(100) >= Cfg.SpawnChance) return d;
+            float chance = Cfg.SpawnChance * ExtMult(ExternalAffixChanceMult);
+            if (Rng.NextDouble() * 100.0 >= chance) return d;
             int max = Cfg.AllowMultiple ? Mathf.Clamp(Cfg.MaxPrefixes, 1, 5) : 1;
-            MobAffix first = Pick(d);
+            bool canWander = CanWander(cr);
+            MobAffix first = Pick(d, canWander);
             if (first == MobAffix.None) return d;
             d.Affixes.Add(first);
             while (d.Affixes.Count < max && Rng.Next(100) < Cfg.ExtraChance)
             {
-                MobAffix a = Pick(d);
+                MobAffix a = Pick(d, canWander);
                 if (a == MobAffix.None) break;
                 d.Affixes.Add(a);
             }
             return d;
         }
 
-        static MobAffix Pick(MobData exclude)
+        static MobAffix Pick(MobData exclude, bool canWander)
         {
             int total = 0;
-            foreach (var a in All) if (IsOn(a) && !exclude.Has(a)) total += WeightOf(a);
+            foreach (var a in All) if (IsOn(a) && !exclude.Has(a) && (canWander || a != MobAffix.Wandering)) total += WeightOf(a);
             if (total <= 0) return MobAffix.None;
             int r = Rng.Next(total);
             foreach (var a in All)
             {
-                if (!IsOn(a) || exclude.Has(a)) continue;
+                if (!IsOn(a) || exclude.Has(a) || (!canWander && a == MobAffix.Wandering)) continue;
                 r -= WeightOf(a);
                 if (r < 0) return a;
             }
             return MobAffix.None;
+        }
+
+        // 방랑하는: 길을 따라 걸어 다닐 수 있는 몬스터만 (앉아서 기다리는 시체·붙박이·길찾기가 없는 것 제외)
+        static bool CanWander(Creature cr)
+        {
+            if (!cr) return false;
+            var agent = cr.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (!agent) return false;
+            var cc = cr.GetComponent<CorpseController>();
+            if (cc && cc.Pose == CorpsePose.Sit) return false;
+            return true;
+        }
+
+        // ------------------------------------------------------------------ 다른 모드(층의 징조 등)가 쓰는 배율 연결점
+        //  ExternalAffixChanceMult: 접두사가 붙을 확률 배율 / ExternalRewardMult: 처치 보상(장비·스킬북) 확률 배율
+        //  ExternalAnimMult(몬스터, 공격 중?): 접두사 몬스터의 동작 속도에 함께 곱할 배율 (접두사 없는 몬스터는 그 모드가 직접 처리)
+        public static Func<float> ExternalAffixChanceMult, ExternalRewardMult;
+        public static Func<CharacterBase, bool, float> ExternalAnimMult;
+        static float ExtMult(Func<float> f)
+        {
+            if (f == null) return 1f;
+            try { float v = f(); return v > 0f && !float.IsNaN(v) ? v : 1f; } catch { return 1f; }
+        }
+        internal static float ExtAnim(CharacterBase ch, bool attacking)
+        {
+            var f = ExternalAnimMult;
+            if (f == null) return 1f;
+            try { float v = f(ch, attacking); return v > 0f && !float.IsNaN(v) ? v : 1f; } catch { return 1f; }
         }
 
         // ------------------------------------------------------------------ 저장
@@ -370,6 +413,32 @@ namespace MobModifiers
             return m;
         }
 
+        // ------------------------------------------------------------------ 방랑하는
+        // 게임의 '순찰(Walk)' 행동으로 바꿔 층 곳곳의 몬스터 경로점 사이를 오가게 하고, 집(돌아갈 자리)을 계속 옮겨
+        // 원래 자리로 돌아가지 않게 한다. 한 곳에 오래 머물지 않도록 정해진 시간마다 다음 목적지를 새로 고른다.
+        static readonly Dictionary<CharacterBase, float> WanderAt = new Dictionary<CharacterBase, float>();
+        static FieldInfo _curCheckPoint;
+        static void Wander(CharacterBase ch)
+        {
+            Creature cr = ch.GetComponent<Creature>();
+            if (!cr || cr.IsDead) return;
+            if (cr.Behavior != CreatureBehavior.Walk) cr.Behavior = CreatureBehavior.Walk;
+            if (cr.EnemyCharacter != null) { WanderAt[ch] = Time.time + 4f; return; }   // 싸우는 동안은 쉬고, 끝나면 곧 다시 떠난다
+            float at;
+            if (WanderAt.TryGetValue(ch, out at) && Time.time < at) return;
+            if (WanderAt.Count > 400) foreach (var k in WanderAt.Keys.Where(k => !k).ToList()) WanderAt.Remove(k);
+            float sec = Mathf.Max(5, Cfg.WanderingSec);
+            WanderAt[ch] = Time.time + sec * (0.5f + (float)Rng.NextDouble());
+            try
+            {
+                cr.MoveToNextCheckPoint();
+                if (_curCheckPoint == null) _curCheckPoint = typeof(Creature).GetField("_currentCheckPoint", BindingFlags.Instance | BindingFlags.NonPublic);
+                object v = _curCheckPoint == null ? null : _curCheckPoint.GetValue(cr);
+                if (v is Vector3 && (Vector3)v != Vector3.zero) cr.SetHomePosition((Vector3)v);
+            }
+            catch (Exception e) { Warn(e); }
+        }
+
         static bool IsFrenzy(CharacterBase ch)
         {
             try { return ch && ch.GetHealthPercent() <= Cfg.FrenziedHp; } catch { return false; }
@@ -390,17 +459,19 @@ namespace MobModifiers
                     foreach (var k in Data.Keys.Where(k => !k).ToList()) Data.Remove(k);
                 }
                 MobData d = Get(ch);
+                if (d != null && IsBossOrSummon(ch)) { Data.Remove(ch); return; }
                 if (d == null)
                 {
                     Creature cr;
                     if (!Eligible(ch, out cr)) return;
-                    d = Roll();
+                    d = Roll(cr);
                     Data[ch] = d;
                     if (d.Any) Log("접두사 몬스터 등장: " + ch.CharacterName + " [" + string.Join(", ", d.Affixes.Select(NameOf).ToArray()) + "]");
                 }
                 Runner.Ensure();
                 if (!d.Any || ch.IsDead) return;
                 if (!ch.GetComponent<MobFx>()) ch.gameObject.AddComponent<MobFx>().Init(ch);
+                if (d.Has(MobAffix.Wandering)) Wander(ch);
                 if (d.Has(MobAffix.Regen))
                 {
                     CharSpec hp = ch.GetSpec(CharSpecType.Health);
@@ -507,6 +578,12 @@ namespace MobModifiers
             return result;
         }
 
+        // 다른 모드(협동 모드)가 쓰는 연결점
+        //  SuppressRewards: true 를 돌려주면 이 게임에서는 보상을 굴리지 않는다 (협동 참가자 → 호스트가 굴려서 보내 줌)
+        //  RewardSpawned: 보상 아이템이 생길 때마다 불린다 (협동 호스트 → 참가자에게 같은 아이템을 보냄)
+        public static Func<bool> SuppressRewards;
+        public static Action<HandItem, CharacterBase> RewardSpawned;
+
         // BestHero.AddKilledCreature 앞부분: 영웅이 접두사 몬스터를 쓰러뜨리면 보상
         [Hook(HookKind.Prefix, "Management.BestHero", "AddKilledCreature", Params = 2, Args = new[] { 1 })]
         public static void OnKill(CharacterBase ch)
@@ -516,6 +593,7 @@ namespace MobModifiers
                 MobData d = Get(ch);
                 if (d == null || !d.Any || d.Rewarded) return;
                 d.Rewarded = true;
+                if (SuppressRewards != null && SuppressRewards()) return;
                 Runner.Ensure();
                 Runner.Queue(ch, d.Tier, 0.6f);
             }
@@ -557,7 +635,8 @@ namespace MobModifiers
             string p = "T" + tier;
             Container box = ch.GetComponent<Container>();
             int given = 0;
-            if (Rng.Next(100) < Cfg.I(p + "EquipChance"))
+            float rm = ExtMult(ExternalRewardMult);
+            if (Rng.NextDouble() * 100.0 < Cfg.I(p + "EquipChance") * rm)
             {
                 int a = Cfg.I(p + "EquipMin"), b = Cfg.I(p + "EquipMax");
                 int n = Rng.Next(Math.Min(a, b), Math.Max(a, b) + 1);
@@ -567,7 +646,7 @@ namespace MobModifiers
                     if (prefab && Spawn(prefab, ch, box, tier)) given++;
                 }
             }
-            if (Rng.Next(100) < Cfg.I(p + "BookChance"))
+            if (Rng.NextDouble() * 100.0 < Cfg.I(p + "BookChance") * rm)
             {
                 GameObject book = PickBook();
                 if (book && Spawn(book, ch, box, 0)) given++;
@@ -614,11 +693,37 @@ namespace MobModifiers
                 {
                     FieldInfo f = it.GetType().GetField("Prefab");
                     GameObject go = f == null ? null : f.GetValue(it) as GameObject;
-                    if (go) list.Add(go);
+                    if (go && !ArmorBookOverCap(go)) list.Add(go);
                 }
                 return list.Count == 0 ? null : list[Rng.Next(list.Count)];
             }
             catch (Exception e) { Warn(e); return null; }
+        }
+
+        // 갑옷 스킬북은 게임이 '층별 상한'을 둔다: 지금 레벨 + 인벤토리에 든 같은 책 수 < min(10, 층×2-1).
+        // 게임은 인벤토리 안의 책만 세므로, 몬스터 보상으로 바닥·시체에 떨어진 채 아직 줍지 않은 책은 빠진다.
+        // 그래서 처치 보상을 여러 번 받으면 층별 상한을 넘겨 책을 모을 수 있었다 → 층에 이미 놓인 같은 책도 함께 센다.
+        static bool ArmorBookOverCap(GameObject prefab)
+        {
+            try
+            {
+                KnowledgeBook kb = prefab.GetComponent<KnowledgeBook>();
+                if (!kb || kb.SkillType == SkillType.None || !Skill.IsArmorSkill(kb.SkillType)) return false;
+                MainChar mc = MainChar.Instance;
+                if (!mc || !mc.Character) return false;
+                var seen = new HashSet<KnowledgeBook>();
+                foreach (var b in UnityEngine.Object.FindObjectsOfType<KnowledgeBook>(true))
+                    if (b && b.SkillType == kb.SkillType && b.gameObject.scene.IsValid()) seen.Add(b);
+                if (mc.Inventory != null && mc.Inventory.InventoryList != null)
+                    foreach (var h in mc.Inventory.InventoryList)
+                    {
+                        var b = h as KnowledgeBook;
+                        if (b && b.SkillType == kb.SkillType) seen.Add(b);
+                    }
+                int cap = Mathf.Min(10, 2 * Game.GetLevelNumber() - 1);
+                return mc.Character.GetSkillLevel(kb.SkillType) + seen.Count >= cap;
+            }
+            catch (Exception e) { Warn(e); return false; }
         }
 
         static bool Spawn(GameObject prefab, CharacterBase ch, Container box, int tier)
@@ -634,6 +739,7 @@ namespace MobModifiers
             else if ((object)sh != null) sh.GenerateSpecs();
             h.IsGenerated = true;
             if (tier > 0) BiasItem(h, tier);
+            Action<HandItem, CharacterBase> spawned = RewardSpawned;
             if (box) box.AddItemToContainer(h);
             else
             {
@@ -642,6 +748,7 @@ namespace MobModifiers
                 if ((object)ar != null && ar.ShellObject && ar.OriginalObject) { ar.ShellObject.SetActive(true); ar.OriginalObject.SetActive(false); }
                 h.EnablePhysics(true, true);
             }
+            if (spawned != null) { try { spawned(h, ch); } catch (Exception e) { Warn(e); } }
             return true;
         }
     }
@@ -694,7 +801,7 @@ namespace MobModifiers
             // 게임이 속도를 바꿨으면 그 값을 새 기준으로 삼는다 (곱셈이 쌓이지 않게)
             if (_lastSet < 0f || !Mathf.Approximately(cur, _lastSet)) _baseSpeed = cur;
             bool attacking = _hasAtk && _anim.GetBool("IsAttacking");
-            float want = _baseSpeed * (attacking ? Mod.AtkMult(d, _ch) : Mod.MoveMult(d));
+            float want = _baseSpeed * (attacking ? Mod.AtkMult(d, _ch) : Mod.MoveMult(d)) * Mod.ExtAnim(_ch, attacking);
             _anim.speed = want;
             _lastSet = want;
         }
@@ -815,13 +922,20 @@ namespace MobModifiers
             }
             if (_mask < 0) _mask = LayerMask.GetMask("LD_WallsLayer", "LD_DoorsLayer");
             Vector3 heroPos = mc.transform.position, camPos = cam.transform.position;
-            float maxSq = Cfg.LabelDistance * (float)Cfg.LabelDistance;
+            Vector3 heroEye = heroPos + Vector3.up * 1.5f;     // 게임의 MainChar.IsPlayerAvailableWallsDoors 와 같은 눈높이
+            float maxDist = Cfg.LabelDistance;
+            if (Cfg.HideOutOfSight)
+            {
+                float vr = HeroVisionRange(mc);
+                if (vr > 0f) maxDist = Mathf.Min(maxDist, vr + 1f);   // 몸이 빛 가장자리에 걸친 정도는 보이게 1m 여유
+            }
+            float maxSq = maxDist * maxDist;
             foreach (Creature cr in Creature.ActiveCreatures)
             {
                 if (!cr || cr.IsDead || cr.IsEnvironment) continue;
                 if ((cr.transform.position - heroPos).sqrMagnitude > maxSq) continue;
                 CharacterBase ch = cr.Character;
-                if (!ch || ch.IsDead) continue;
+                if (!ch || ch.IsDead || Mod.IsBossOrSummon(ch)) continue;
                 MobData d = Mod.Get(ch);
                 bool affixed = d != null && d.Any;
                 bool showLabel = labels && affixed;
@@ -832,7 +946,14 @@ namespace MobModifiers
                 if (!showLabel && !showBar) continue;
                 Bounds bb;
                 GetBounds(cr, out bb);
-                if (Cfg.HideBehindWalls && _mask != 0 && Physics.Linecast(camPos, bb.center, _mask)) continue;
+                if (Cfg.HideBehindWalls && _mask != 0)
+                {
+                    // 위에서 내려다보는 카메라 기준만 보면 벽 너머(옆방) 몬스터도 보인다고 판정된다.
+                    // 영웅 눈에서 몬스터 몸 가운데·머리 둘 다 벽·문에 막히면 숨긴다.
+                    Vector3 top = new Vector3(bb.center.x, bb.max.y - 0.1f, bb.center.z);
+                    if (Physics.Linecast(heroEye, bb.center, _mask) && Physics.Linecast(heroEye, top, _mask)) continue;
+                    if (Physics.Linecast(camPos, bb.center, _mask)) continue;
+                }
                 Shown sh;
                 if (_pool.Count > 0) { sh = _pool[_pool.Count - 1]; _pool.RemoveAt(_pool.Count - 1); }
                 else sh = new Shown();
@@ -846,6 +967,18 @@ namespace MobModifiers
                 }
                 _shown.Add(sh);
             }
+        }
+
+        // 영웅이 지금 볼 수 있는 거리 (게임의 MainChar.GetCurrentVisionRange 와 같은 계산: 켜진 등불의 빛 반경, 없으면 시야 능력치)
+        static float HeroVisionRange(MainChar mc)
+        {
+            try
+            {
+                var lamp = mc.GetLamp();
+                if (lamp && (int)lamp.LampMode > 0 && lamp.PointLight) return lamp.PointLight.range;
+                return mc.Character ? mc.GetDefaultVisionRange() : 0f;
+            }
+            catch { return 0f; }
         }
 
         // 게임 UI 와 따로 쓰는 이름표 전용 글꼴
